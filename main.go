@@ -59,7 +59,7 @@ func main() {
 
 	consumer = &StdoutConsumer{}
 	if !debugEnabled {
-		consumer, err = sensorsanalytics.InitBatchConsumer(saServerURL, 50, 10)
+		consumer, err = sensorsanalytics.InitBatchConsumer(saServerURL, 10, 1000*10)
 		if err != nil {
 			panic(err)
 		}
