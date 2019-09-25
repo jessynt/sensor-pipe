@@ -128,7 +128,9 @@ func RequestLogger() gin.HandlerFunc {
 		c.Request.Body = rdr2
 		c.Next()
 
-		log.Println("request", readBody(rdr1), "response", blw.body.String())
+		if c.Request.RequestURI != "/ping" {
+			log.Println("request", readBody(rdr1), "response", blw.body.String())
+		}
 	}
 }
 
