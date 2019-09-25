@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -71,7 +74,7 @@ func main() {
 	{
 		gin.SetMode(gin.ReleaseMode)
 		route = gin.New()
-		route.Use(gin.Logger(), gin.Recovery())
+		route.Use(RequestLogger(), gin.Recovery())
 		route.GET("/ping", handler.MakePingHandler())
 		route.POST("/track", handler.MakeTrackHandler(sa))
 		route.POST("/track-signup", handler.MakeTrackSignupHandler(sa))
@@ -101,4 +104,38 @@ func main() {
 	sa.Close()
 
 	log.Println("Server exiting")
+}
+
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (w bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+func RequestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+		c.Writer = blw
+
+		buf, _ := ioutil.ReadAll(c.Request.Body)
+		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
+		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
+
+		c.Request.Body = rdr2
+		c.Next()
+
+		log.Println("request", readBody(rdr1), "response", blw.body.String())
+	}
+}
+
+func readBody(reader io.Reader) string {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(reader)
+
+	s := buf.String()
+	return s
 }
